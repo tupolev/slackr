@@ -1,0 +1,35 @@
+<?php
+
+class Config {
+    public const _DEBUG = true;
+    //get an auth token from:
+    //
+    public const AUTH_TOKEN = "xoxp-4514160482-XXXXXXXXX-XXXXXXXX-xxxxXXxxXXXXXxxx";
+    public const USER_NAME = "manuel.gomez";
+    public const TEAM_NAME = "plugsurfing";
+    public const OUT_DIR = "./out/";
+
+    public static $conversationTypeUrls = [
+        "channels" => [
+            "type" => "channel",
+            "list" => "https://slack.com/api/channels.list",
+            "history" => "https://slack.com/api/channels.history",
+        ],
+        "groups"   => [
+            "type" => "group",
+            "list" => "https://slack.com/api/mpim.list",
+            "history" => "https://slack.com/api/mpim.history",
+        ],
+        "ims" => [
+            "type" => "im",
+            "list" => "https://slack.com/api/im.list",
+            "history" => "https://slack.com/api/im.history",
+        ],
+    ];
+
+    public static $infoUrls = [
+        "userinfo" => "https://slack.com/api/users.info",
+        "userlist" => "https://slack.com/api/users.list",
+    ];
+}
+

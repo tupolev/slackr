@@ -1,0 +1,16 @@
+{
+    "name": "tupolev/slackr",
+    "description": "slackr",
+    "type": "project",
+    "require": {
+        "guzzlehttp/guzzle": "^7.0@dev",
+        "ext-json": "*"
+    },
+    "authors": [
+        {
+            "name": "Manuel Gómez",
+            "email": "tupolev@gmail.com"
+        }
+    ],
+    "minimum-stability": "dev"
+}

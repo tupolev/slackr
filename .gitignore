@@ -1,0 +1,5 @@
+.idea/
+out/
+vendor/
+config/Config.php
+composer.phar
