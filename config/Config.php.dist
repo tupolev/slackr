@@ -3,7 +3,8 @@
 class Config {
     public const _DEBUG = true;
     //get an auth token from:
-    //
+    //TODO find where and how the f* to get a proper auth token with right permissions from slack site.
+    // https://api.slack.com/apps
     public const AUTH_TOKEN = "xoxp-4514160482-XXXXXXXXX-XXXXXXXX-xxxxXXxxXXXXXxxx";
     public const USER_NAME = "manuel.gomez";
     public const TEAM_NAME = "plugsurfing";
