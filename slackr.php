@@ -41,9 +41,11 @@ try {
         Config::AUTH_TOKEN,
         Config::USER_NAME,
         Config::TEAM_NAME,
-        Config::OUT_DIR
+        Config::OUT_DIR,
+        Config::WHITELISTED_CHANNELS_FILE
     );
     $slackr->preloadUsers();
+    $slackr->preloadWhitelistedChannelsFromFile();
     foreach ($itemsToProcess as $itemToProcess) {
         $conversationType = $itemToProcess;
         Console::info("Fetching $conversationType");
@@ -56,7 +58,7 @@ try {
             } else {
                 $conversationName = $slackr->getCachedUserNameById($conversationInfo["user"]);
             }
-            $slackr->writeConversationToFile($conversationName, $conversation);
+            $slackr->writeConversationToFile($conversationType, $conversationName, $conversation);
         }
     }
     Console::info("Done");

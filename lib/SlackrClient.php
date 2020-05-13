@@ -6,9 +6,12 @@ use GuzzleHttp\Client;
 
 class SlackrClient {
 
-    private const PAGE_LIMIT_FOR_LIST = 20;
-    private const PAGE_LIMIT_FOR_HISTORY = 200;
-    private const PAGE_LIMIT_FOR_USERS = 20;
+    private const PAGE_LIMIT_FOR_LIST = 200;
+    private const PAGE_LIMIT_FOR_HISTORY = 1000;
+    private const PAGE_LIMIT_FOR_USERS = 200;
+    private const HTTP_STATUS_CODE_TOO_MANY_REQUESTS = 429;
+    private const SAFE_REQUEST_WAIT_TIME_SECS = 30;
+    private const HTTP_STATUS_CODE_OK = 200;
 
     /** @var Client */
     private $http;
@@ -37,6 +40,12 @@ class SlackrClient {
     /** @var Console */
     private $console;
 
+    /** @var array */
+    private $whitelistedChannelNames = [];
+
+    /** @var string */
+    private $whitelistedChannelsFile;
+
     public function __construct(
         Console $console,
         Client $http,
@@ -45,7 +54,8 @@ class SlackrClient {
         string $authToken,
         string $username,
         string $teamname,
-        string $outdir
+        string $outdir,
+        string $whitelistedChannelsFile
     )
     {
         $this->console = $console;
@@ -56,6 +66,16 @@ class SlackrClient {
         $this->username = $username;
         $this->teamname = $teamname;
         $this->outdir = $outdir;
+        $this->whitelistedChannelsFile = $whitelistedChannelsFile;
+    }
+
+    public function preloadWhitelistedChannelsFromFile()
+    {
+        $channelNames = file($this->whitelistedChannelsFile);
+        if (empty($channelNames)) {
+            return;
+        }
+        $this->whitelistedChannelNames = $channelNames;
     }
 
     public function preloadUsers()
@@ -90,7 +110,14 @@ class SlackrClient {
             $page = json_decode($res->getBody()->getContents(), true);
             $nextCursor = $page["response_metadata"]["next_cursor"];
             $conversations = $page[$conversationType];
-            $conversationListTmp []= $conversations;
+            if (count($this->whitelistedChannelNames) > 0) {
+                $conversationListTmp []= array_filter(
+                    $conversations,
+                    function ($item) { return in_array($item['name'], $this->whitelistedChannelNames); }
+                    );
+            } else {
+                $conversationListTmp []= $conversations;
+            }
         } while ($nextCursor !== "");
 
         return array_merge(...$conversationListTmp);
@@ -106,16 +133,26 @@ class SlackrClient {
         );
         $latestTs = "";
         $conversationTmp = [];
+        $hasMore = false;
         do {
             $this->console->debug("$url&limit=" . self::PAGE_LIMIT_FOR_HISTORY . "&latest=$latestTs");
-            $res = $this->http->request('GET', "$url&limit=" . self::PAGE_LIMIT_FOR_HISTORY . "&latest=$latestTs", []);
-            $page = json_decode($res->getBody()->getContents(), true);
-            $hasMore = $page['has_more'];
-            $messages = $page['messages'];
-            $lastMessage = end($page['messages']); reset($page['messages']);
-            $latestTs = $lastMessage['ts'];
-            $conversationTmp []= $messages;
-        } while ($hasMore && $latestTs !== '');
+
+            $res = $this->http->request('GET', "$url&limit=" . self::PAGE_LIMIT_FOR_HISTORY . "&latest=$latestTs", ['http_errors' => false]);
+            if ($res->getStatusCode() === self::HTTP_STATUS_CODE_OK) {
+                $page = json_decode($res->getBody()->getContents(), true);
+                $hasMore = $page['has_more'];
+                $messages = $page['messages'];
+                $lastMessage = end($page['messages']); reset($page['messages']);
+                $latestTs = $lastMessage['ts'];
+                $conversationTmp []= $messages;
+            } else if ($res->getStatusCode() === self::HTTP_STATUS_CODE_TOO_MANY_REQUESTS) {
+                $retryAfter = $res->getHeader('Retry-After');
+
+                Console::error('Max request number reached. Waiting ' . ($retryAfter[0] ?: self::SAFE_REQUEST_WAIT_TIME_SECS) . ' seconds...');
+                sleep($retryAfter[0] ?: self::SAFE_REQUEST_WAIT_TIME_SECS);
+                $hasMore = true;
+            }
+        } while ($hasMore);
 
         $conversation = array_merge(...$conversationTmp);
 
@@ -132,9 +169,14 @@ class SlackrClient {
         return $conversation;
     }
 
-    public function writeConversationToFile(string $conversationName, array $conversation = [])
+    public function writeConversationToFile(string $conversationType, string $conversationName, array $conversation = [])
     {
-        $outDir = sprintf($this->outdir . "%s" . DIRECTORY_SEPARATOR . "%s", $this->username, $this->teamname);
+        $outDir = sprintf(
+            $this->outdir . "%s" . DIRECTORY_SEPARATOR . "%s" . DIRECTORY_SEPARATOR . "%s",
+            $this->username,
+            $this->teamname,
+            $conversationType
+        );
         if (!count($conversation)) {
             $this->console::info("Empty conversation $conversationName. Skipping file.");
             return;

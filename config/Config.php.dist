@@ -2,13 +2,12 @@
 
 class Config {
     public const _DEBUG = true;
-    //get an auth token from:
-    //TODO find where and how the f* to get a proper auth token with right permissions from slack site.
-    // https://api.slack.com/apps
+    //Check README.md for instructions to get an auth token
     public const AUTH_TOKEN = "xoxp-4514160482-XXXXXXXXX-XXXXXXXX-xxxxXXxxXXXXXxxx";
     public const USER_NAME = "manuel.gomez";
     public const TEAM_NAME = "plugsurfing";
     public const OUT_DIR = "./out/";
+    public const WHITELISTED_CHANNELS_FILE = './config/whitelisted_channels';
 
     public static $conversationTypeUrls = [
         "channels" => [
