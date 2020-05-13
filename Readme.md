@@ -10,3 +10,4 @@
 
 (Any combination of `"ims"`, `"groups"` and `"channels"` is allowed)
 
+* Channels backup is still an experimental feature. It can easily reach max requests rate and it's not fixed yet.
